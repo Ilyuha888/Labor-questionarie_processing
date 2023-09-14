@@ -54,7 +54,7 @@ anket %>%
     a_sum_3 = rowSums(across(c(a24:a38))),
     a_sum_4 = rowSums(across(c(a39:a52)))) -> anket
 
-#МОДЕЛЬ 1
+#МОДЕЛЬ 1 -----
 #Альфа Кронбаха
 
 anket %>% 
@@ -215,7 +215,7 @@ anket %>%
 
 #Пойдёт, всё больше 0.8
 
-#МОДЕЛЬ 2
+#МОДЕЛЬ 2 -----
 
 #ЭФА
 
@@ -321,7 +321,7 @@ View(anket)
 # Отсеим стандартный вклад ниже 0.7
 
 
-#МОДЕЛЬ 3
+#МОДЕЛЬ 3 -----
 #CFA - once again
 
 mdl3 <- ('F1 =~ a9+a10+a12+a14+a15
@@ -387,8 +387,55 @@ anket %>%
 
 anket %>% select(-a_sum_4) -> anket
 
-#Конвергентная валидность
+#Сохраним результаты для дальнешей работы: ----
 
-cor(select(anket, c(a_sum_1, c_sum_5)))
-cor(select(anket, c(a_sum_2, c_sum_2, c_sum_5, b_sum_1, b_sum_4)))
-cor(select(anket, c(a_sum_1, c_sum_4, b_sum_5, b_sum_6)))
+anket %>% select(ID:d12, a_sum_1:c_sum_5) %>%  write_csv('anket_an_1.csv')
+
+#Проверим методику "Сокращенная версия опросника проактивный копиг" -----
+#Альфа Кронбаха
+
+anket %>% 
+  select(b1:b27) %>%
+  alpha()
+
+#Kaiser-Meyer-Olkin (KMO)
+anket %>% 
+  select(b1:b27) %>% 
+  KMO() %>% 
+  .[["MSAi"]] %>% sort()
+
+#КФА
+mdl1 <- ('F1 =~ b1+b2+b3+b4+b5+b6 
+          F2 =~ b7+b8+b9+b10+b11
+          F3 =~ b12+b13+b14
+          F4 =~ b15+b16+b17+b18+b19
+          F5 =~ b20+b21+b22+b23
+          F6 =~ b24+b25+b26+b27')
+
+model1 <- cfa(mdl1, data = anket)
+summary(model1)
+fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea"))
+
+#Проверим методику "Удовлетворенность трудом" -----
+#Альфа Кронбаха
+
+anket %>% 
+  select(c1:c19) %>%
+  alpha()
+
+#Kaiser-Meyer-Olkin (KMO)
+anket %>% 
+  select(c1:c19) %>% 
+  KMO() %>% 
+  .[["MSAi"]] %>% sort()
+
+#КФА
+mdl1 <- ('F1 =~ c1+c2+c3+c4 
+          F2 =~ c5+c6+c7+c8
+          F3 =~ c9+c10+c11
+          F4 =~ c12+c13+c14
+          F5 =~ c15+c16+c17+c18+c19')
+
+model1 <- cfa(mdl1, data = anket)
+summary(model1)
+fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea"))
