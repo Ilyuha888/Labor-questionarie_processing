@@ -1,4 +1,3 @@
-install.packages('rstatix')
 library(tidyverse)
 library(rstatix)
 
