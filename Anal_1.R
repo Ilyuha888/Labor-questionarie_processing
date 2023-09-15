@@ -324,8 +324,8 @@ View(anket)
 #МОДЕЛЬ 3 -----
 #CFA - once again
 
-mdl3 <- ('F1 =~ a9+a10+a12+a14+a15
-          F2 =~ a1+a2+a3+a5+a8
+mdl3 <- ('F1 =~ a1+a2+a3+a5+a8
+          F2 =~ a9+a10+a12+a14+a15
           F3 =~ a17+a19+a20')
 
 model3 <- cfa(mdl3, data = anket)
@@ -357,8 +357,8 @@ View(anket)
 
 # Посмотрим, что Lavaan для модификации предложит
 
-mdl3.1 <- ('F1 =~ a9+a6+a7+a8+a10
-          F2 =~ a2+a1+a3+a4+a5
+mdl3.1 <- ('F1 =~ a2+a1+a3+a4+a5
+          F2 =~ a9+a6+a7+a8+a10
           F3 =~ a11+a12+a13
           a4 ~~  a5')
 
@@ -381,8 +381,8 @@ modificationindices(model3.1) %>% filter(mi > 10) %>% arrange(-mi)
 
 anket %>% 
   mutate(
-    a_sum_1 = rowSums(across(c(a6:a10))),
-    a_sum_2 = rowSums(across(c(a1:a5))),
+    a_sum_1 = rowSums(across(c(a1:a5))),
+    a_sum_2 = rowSums(across(c(a6:a10))),
     a_sum_3 = rowSums(across(c(a11:a13)))) -> anket
 
 anket %>% select(-a_sum_4) -> anket
