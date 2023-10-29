@@ -1,3 +1,4 @@
+#Импорт библиотек -----
 library(tidyverse)
 library(psych)
 library(lavaan)
@@ -6,9 +7,13 @@ library(GPArotation)
 library(data.table)
 library(lavaanPlot)
 
+#Подготовка ----
+
+#Импортируем почищенные данные
 anket <- read_csv('anket_clean.csv')
 
-anket %>% #Распределение по полу и возрасту возрасту
+#Распределение по полу и возрасту возрасту
+anket %>% 
   group_by(d1) %>% 
   summarise(n = n(),
             mean = mean(d2),
