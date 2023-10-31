@@ -66,7 +66,8 @@ anket %>%
   select(a1:a52) %>%
   alpha()
 
-#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. Удаление ни одного пункта, её не увеличит. Тут не выкидываем
+#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. Удаление ни одного пункта, 
+#её не увеличит. Тут не выкидываем
 
 #Kaiser-Meyer-Olkin (KMO)
 anket %>% 
@@ -78,7 +79,8 @@ anket %>%
 #где показатель ниже 0.7
 
 anket %>% 
-  select(-a32, -a15, -a50, -a30, -a31, -a3, -a23, -a36, -a18, -a9, -a44, -a22, -a11) -> anket
+  select(-a32, -a15, -a50, -a30, -a31, -a3, -a23, -a36, -a18, -a9, -a44, -a22, 
+         -a11) -> anket
 
 #Выравнеем номера
 
@@ -106,7 +108,8 @@ anket %>%
   select(a1:a39) %>%
   alpha()
 
-#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. Удаление ни одного пункта, её не увеличит. Тут не выкидываем
+#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. 
+#Удаление ни одного пункта, её не увеличит. Тут не выкидываем
 
 #Kaiser-Meyer-Olkin (KMO)
 anket %>% 
@@ -159,28 +162,11 @@ fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
 # Так, оставим везде по 5-6 самых нагурженных вопросов
 
-mdl1.1 <- ('F1 =~ a4+a3+a5+a7+a8
-          F2 =~ a12+a9+a10+a15+a16
-          F3 =~ a26+a23+a18+a19+a20+a27
-          F4 =~ a28+a30+a29+a31+a36')
-
-model1.1 <- cfa(mdl1.1, data = anket)
-summary(model1.1)
-fitmeasures(model1.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
-
-semPaths(model1.1, 'std')
-modificationindices(model1.1) %>% filter(mi > 20) %>% arrange(-mi)
-
-#Lavaan предлагает добавить: 
-# a36 в F3 - нет
-# a12 в F1 - нет
-# a12 в F3 - нет
-# a36 в F2 - нет
-
-#Попробуем напоследок подправить список вопросов
+#Подправим список вопросов
 
 anket %>% 
-  select(-a1,-a2,-a6,-a11,-a13,-a14,-a17,-a21,-a22,-a24,-a25,-a32,-a33,-a34,-a35,-a37,-a38,-a39) -> anket
+  select(-a1,-a2,-a6,-a11,-a13,-a14,-a17,-a21,-a22,-a24,
+         -a25,-a32,-a33,-a34,-a35,-a37,-a38,-a39) -> anket
 
 #Выравнеем номера
 
@@ -210,7 +196,8 @@ anket %>%
   select(a1:a21) %>%
   alpha()
 
-#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. Удаление ни одного пункта, её не увеличит. Тут не выкидываем
+#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая. 
+#Удаление ни одного пункта, её не увеличит. Тут не выкидываем
 
 #Kaiser-Meyer-Olkin (KMO)
 anket %>% 
@@ -248,7 +235,6 @@ anket %>%
 print(anket.fa4$loadings, cutoff = 0.4)
 
 #Ну грустно, нагрузки распределились не так, как нам надо, но как-то ближе
-#Давайте КФА
 
 #КФА
 
@@ -261,57 +247,77 @@ model2 <- cfa(mdl2, data = anket)
 summary(model2)
 fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
-#ESEM
+semPaths(mdl2, 'std')
+modificationindices(mdl2) %>% filter(mi > 20) %>% arrange(-mi)
 
+#Lavaan предлагает добавить: 
+# a36 в F3 - нет
+# a12 в F1 - нет
+# a12 в F3 - нет
+# a36 в F2 - нет
+
+
+#МОДЕЛЬ 3 -----
+
+#Попробуем ESEM
+
+#Первое вращение, выбираем якоря
 anket %>% 
   select(a1:a21) %>%
   factanal(factors = 3, rotation = 'geominQ', delta = .5) ->
   anket.esem.efa
 print(anket.esem.efa$loadings, cutoff = 0.5)
 
+#Cтроим матрицу со всеми нагрузками
 esem_loadings <- data.table(matrix(round(anket.esem.efa$loadings, 2),
                                    nrow = 21, ncol = 3))
 
+#Меняем формат матрицы, готовя к анализу
 names(esem_loadings) <- c("F1","F2","F3")
 esem_loadings$item <- paste0('a', c(1:21))
 esem_loadings <- melt(esem_loadings, "item", variable.name = "latent")
 
 esem_loadings
 
+#Устанавливаем якоря
 anchors <- c(F1 = "a14", F2 = "a1", F3 = "a20")
 
+#Задаём функцию для подсчёта ESEM модели
 make_esem_model <- function (loadings_dt, anchors){
   
-  # make is_anchor variable
+  #Добавляем is_anchor (является ли якорем)
   loadings_dt[, is_anchor := 0]
-  for (l in names(anchors)) loadings_dt[latent != l & item == anchors[l], is_anchor := 1]
+  for (l in names(anchors)) loadings_dt[latent != l & item == anchors[l], 
+                                        is_anchor := 1]
   
-  # make syntax column per item; syntax is different depending on is_anchor
+  #Добавляем лавановский синтакс для каждой переменной (зависит от is_anchor)
   loadings_dt[is_anchor == 0, syntax := paste0("start(",value,")*", item)]
   loadings_dt[is_anchor == 1, syntax := paste0(value,"*", item)]
   
-  #Make syntax for each latent variable
+  #Добавляем лавановский синтакс для латентных переменных
   each_syntax <- function (l){
     paste(l, "=~", paste0(loadings_dt[latent == l, syntax], collapse = "+"),"\n")
   }
   
-  # Put all syntaxes together
+  #Генерируем финальный лавановский синтакс
   paste(sapply(unique(loadings_dt$latent), each_syntax), collapse = " ")
 }
 
+#Делаем ESEM с нашими параметрами
 esem_model <- make_esem_model(esem_loadings, anchors)
 
 esem_model
 
+#Смотрим стандартные нагрузки, с фильтром больше или равно 0.7
 esem_fit <- cfa(esem_model, select(anket, a1:a21), std.lv=T)
 summary(esem_fit, fit.measures = T, standardized = T) %>% 
   .[["pe"]] %>% 
   filter(std.lv >= 0.7)
 
+#Строим график
 lavaanPlot::lavaanPlot(model = esem_fit, coefs = TRUE,
-           stand = TRUE,
-           edge_options = list(color ='grey'))
-View(anket)
+                       stand = TRUE,
+                       edge_options = list(color ='grey'))
 
 #Ну, подумкаем. Волбшебная машина говорит, что фактора 3: 
 # 1) 9,10,12,14,15
@@ -325,8 +331,6 @@ View(anket)
 # А теперь возьмём то, что нам сказал E-SEM, и бахнем ещё одну CFA
 # Отсеим стандартный вклад ниже 0.7
 
-
-#МОДЕЛЬ 3 -----
 #CFA - once again
 
 mdl3 <- ('F1 =~ a1+a2+a3+a5+a8
@@ -362,6 +366,28 @@ View(anket)
 
 # Посмотрим, что Lavaan для модификации предложит
 
+mdl3 <- ('F1 =~ a2+a1+a3+a4+a5
+          F2 =~ a9+a6+a7+a8+a10
+          F3 =~ a11+a12+a13')
+
+model3 <- cfa(mdl3, data = anket)
+summary(model3)
+fitmeasures(model3, c("chisq","cfi", "tli", "srmr", "rmsea"))
+
+semPaths(model3, 'std')
+modificationindices(model3) %>% filter(mi > 10) %>% arrange(-mi)
+
+#Lavaan предлагает учесть следующие взаимодействия:
+# Ковариация a4 и a5; a4 и a10
+# Включить a1 и а4 в F1
+# Я считаю оправданным учесть ковариацию a4 и a5 - это две строны одного вопроса
+# (4 - индивидуальная, 5 - общественная)
+# Ковариацию а4 и a10 учитывать не будем
+# теоретически включить a1 и a4 в F1 можно, но первый пункт выходит перегруженым, 
+# поэтому не буду
+
+#Посмотрим после учёта
+
 mdl3.1 <- ('F1 =~ a2+a1+a3+a4+a5
           F2 =~ a9+a6+a7+a8+a10
           F3 =~ a11+a12+a13
@@ -371,19 +397,26 @@ model3.1 <- cfa(mdl3.1, data = anket)
 summary(model3.1)
 fitmeasures(model3.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
+#Строим график
+
 semPaths(model3.1, 'std')
 modificationindices(model3.1) %>% filter(mi > 10) %>% arrange(-mi)
 
-#Lavaan предлагает учесть следующие взаимодействия:
-# Ковариация a4 и a5; a4 и a10
-# Включить a1 и а4 в F1
-# Я считаю оправданным учесть ковариацию a4 и a5 - это две строны одного вопроса
-# (4 - индивидуальная, 5 - общественная)
-# Ковариацию а4 и a10 учитывать не будем
-# теоретически включить a1 и a4 в F1 можно, но первый пункт выходит перегруженым, поэтому не буду
-
 #Пересчитаем суммы
+#Посчитаем веса
+as_tibble_col(unlist(model3.1@ParTable[2], use.names=FALSE)[1:13], 
+                       column_name = 'lat_var') %>% 
+  mutate(var = unlist(model3.1@ParTable[4], use.names=FALSE)[1:13], 
+         coef = unlist(model3.1@ParTable[13], use.names=FALSE)[1:13]) -> coefs
 
+coefs %>% arrange(lat_var,var) %>% select(coef)-> coefss
+#Домножим на веса
+i = 1
+for (x in c(14:26)) {
+  anket[x] = anket[x] * coefss$coef[i]
+  i = i+1
+}
+#Сами суммы
 anket %>% 
   mutate(
     a_sum_1 = rowSums(across(c(a1:a5))),
