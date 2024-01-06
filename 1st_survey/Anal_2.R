@@ -2,7 +2,7 @@
 library(tidyverse)
 library(rstatix)
 
-anket_an_1 <- read_csv('anket_an_1.csv')
+anket_an_1 <- read_csv(paste0(getwd(),'/1st_survey/anket_an_1.csv'))
 
 #Конвергентная валидность -----
 

@@ -10,7 +10,7 @@ library(lavaanPlot)
 #Подготовка ----
 
 #Импортируем почищенные данные
-anket <- read_csv('anket_clean.csv')
+anket <- read_csv(paste0(getwd(),'/1st_survey/anket_clean.csv'))
 
 #Распределение по полу и возрасту возрасту
 anket %>% 
@@ -247,8 +247,8 @@ model2 <- cfa(mdl2, data = anket)
 summary(model2)
 fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
-semPaths(mdl2, 'std')
-modificationindices(mdl2) %>% filter(mi > 20) %>% arrange(-mi)
+semPaths(model2, 'std')
+modificationindices(model2) %>% filter(mi > 20) %>% arrange(-mi)
 
 #Lavaan предлагает добавить: 
 # a36 в F3 - нет
@@ -427,7 +427,8 @@ anket %>% select(-a_sum_4) -> anket
 
 #Сохраним результаты для дальнешей работы: ----
 
-anket %>% select(ID:d12, a_sum_1:c_sum_5) %>%  write_csv('anket_an_1.csv')
+anket %>% select(ID:d12, a_sum_1:c_sum_5) %>%
+  write_csv(paste0(getwd(),'/1st_survey/anket_an_1.csv'))
 
 #Проверим методику "Сокращенная версия опросника проактивный копиг" -----
 #Альфа Кронбаха
