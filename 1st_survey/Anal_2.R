@@ -168,3 +168,61 @@ my_table <- nice_table(
 )
 
 flextable::save_as_docx(my_table, path = paste0(getwd(),'/1st_survey/ridge.docx'))
+
+
+
+anket <- read_csv(paste0(getwd(),'/1st_survey/anket_clean.csv'))
+
+
+#Уберём неуверенных
+anket %>% filter(d12 != 'Затрудняюсь ответить') -> anket_ridg
+
+#Подготовим переменные
+y <- anket_ridg$d12 == 'Да'
+
+names(anket)
+
+x <- data.matrix(anket_ridg[, c("a1",     
+  "a2", "a3","a4","a5","a6","a7","a8","a9","a10",     "a11",     "a12",     "a13",     "a14",     "a15",    
+  "a16",     "a17",     "a18",     "a19",     "a20",     "a21",     "a22",     "a23",     "a24",     "a25",     "a26",     "a27",     "a28",     "a29",    
+  "a30",     "a31",     "a32",     "a33",     "a34",     "a35",     "a36",     "a37",     "a38",     "a39",     "a40",     "a41",     "a42",     "a43",    
+  "a44",     "a45",     "a46",     "a47",     "a48",     "a49",     "a50",     "a51",     "a52",     "a53",     "a54",     "a55",     "a56")])
+#Модель
+model <- glmnet(x, y, alpha = 0)
+
+#Найдём оптимальную лямбду
+#k-fold cross-validation
+cv_model <- cv.glmnet(x, y, alpha = 0)
+
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+plot(cv_model) 
+
+#Посчитаем итоговую модельку
+best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+coef(best_model)
+
+#Давайте R2 посмотрим
+y_predicted <- predict(model, s = best_lambda, newx = x)
+
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+rsq <- 1 - sse/sst
+rsq
+
+# Табличка
+
+tb <- tibble(names(coef(best_model)[,1]),coef(best_model)[,1])
+names(tb) <- c('Предиктор', 'Коэффициент')
+
+my_table <- nice_table(
+  tb,
+  title = c("Таблица 1", "Предикторы желания покинуть работу"),
+  note = c(
+    "Коэффициенты получены в результате применения Ридж-регресси с лямбда = 0.50"
+  )
+)
+
+flextable::save_as_docx(my_table, path = paste0(getwd(),'/1st_survey/ridge2.docx'))
