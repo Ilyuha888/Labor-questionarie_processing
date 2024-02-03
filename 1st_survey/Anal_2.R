@@ -1,6 +1,8 @@
 #Импорт библиотек -----
 library(tidyverse)
 library(rstatix)
+library(glmnet)
+library(rempsyc)
 
 anket_an_1 <- read_csv(paste0(getwd(),'/1st_survey/anket_an_1.csv'))
 
@@ -106,3 +108,63 @@ anket_an_1 %>% filter(a1_cat %in% c('Высок','Низк')) %>%
 anket_an_1 %>% filter(a1_cat %in% c('Высок','Низк')) %>% 
   ggplot(aes(x=a1_cat, y=c_sum_5)) + 
   geom_boxplot()
+
+#Строим Ридж-регрессию для желания оставить работу ----
+
+#Уберём неуверенных
+anket_an_1 %>% filter(d12 != 'Затрудняюсь ответить') -> anket_ridg
+
+#Подготовим переменные
+y <- anket_ridg$d12 == 'Да'
+
+names(anket_ridg)
+
+x <- data.matrix(anket_ridg[, c("a_sum_1", "a_sum_2", "a_sum_3", "c_sum_1", 
+                                "c_sum_2", "c_sum_3", "c_sum_4", "c_sum_5")])
+#Модель
+model <- glmnet(x, y, alpha = 0)
+
+#Найдём оптимальную лямбду
+#k-fold cross-validation
+cv_model <- cv.glmnet(x, y, alpha = 0)
+
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+plot(cv_model) 
+
+#Посчитаем итоговую модельку
+best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+coef(best_model)
+
+#Давайте R2 посмотрим
+y_predicted <- predict(model, s = best_lambda, newx = x)
+
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+rsq <- 1 - sse/sst
+rsq
+
+# Табличка
+
+tb <- tibble(c('Интерцепт',
+               'Качество исполнения работы',
+               'Польза для людей',
+               'Связь с коллегами',
+               'Удовлетворенность заработной платой', 
+               'Удовлетворенность организацией труда', 
+               'Удовлетворенность руководством', 
+               'Удовлетворенность коллективом', 
+               'Удовлетворенность процессом и содержанием труда'),coef(best_model)[,1])
+names(tb) <- c('Предиктор', 'Коэффициент')
+
+my_table <- nice_table(
+  tb,
+  title = c("Таблица 1", "Предикторы желания покинуть работу"),
+  note = c(
+    "Коэффициенты получены в результате применения Ридж-регресси с лямбда = 0.4"
+  )
+)
+
+flextable::save_as_docx(my_table, path = paste0(getwd(),'/1st_survey/ridge.docx'))
