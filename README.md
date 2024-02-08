@@ -6,6 +6,7 @@
 ### Сбор данных: 
 anketolog.ru
 ### Обработка данных:
+### R
 - library(tidyverse) - тиблы и пайплайн
 - library(psych) - факторные анализы
 - library(lavaan) - структурное моделирование
