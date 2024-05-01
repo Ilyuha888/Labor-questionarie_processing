@@ -1,3 +1,6 @@
+install.packages('pacman')
+pacman::p_load_gh("Buedenbender/datscience")
+
 #Импорт библиотек -----
 library(tidyverse)
 library(psych)
@@ -6,6 +9,8 @@ library(semPlot)
 library(GPArotation)
 library(data.table)
 library(lavaanPlot)
+library(broom)
+library(flextable)
 
 #Подготовка ----
 
@@ -151,6 +156,8 @@ anket %>%
   factanal(factors = 4, rotation = 'oblimin') ->
   anket.fa4
 
+write.csv(round(anket.fa4$loadings, 3), paste0(getwd(),'/2nd_survey/anket.fa4.csv'))
+
 print(anket.fa4$loadings, cutoff = 0.4)
 
 #Ну грустно, нагрузки распределились не так, как нам надо
@@ -167,8 +174,9 @@ mdl1 <- ('F1 =~ a8+a1+a2+a4+a6+a7+a9+a10+a11+a13+a_cosv1+a_cosv2+a_cosv3+a_cosv4
 
 model1 <- cfa(mdl1, data = anket)
 summary(model1)
-fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
+
+write.csv(fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea")), paste0(getwd(),'/2nd_survey/cfa1.quality.csv'))
 
 #МОДЕЛЬ 2 -----
 
@@ -247,9 +255,13 @@ lavInspect(model2, "cov.lv")
 summary(model2)
 fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
+write.csv(fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea")), paste0(getwd(),'/2nd_survey/cfa2.quality.csv'))
+
 semPaths(model2, 'std')
 modificationindices(model2) %>% filter(mi > 20) %>% arrange(-mi)
 
+
+View(model2)
 #Lavaan говорит, что беда модель не работает, матрица не считается(((
 
 
@@ -534,3 +546,5 @@ mdl1 <- ('F1 =~ s1+s2+s3+s4+s5')
 model1 <- cfa(mdl1, data = anket)
 summary(model1)
 fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea"))
+
+
