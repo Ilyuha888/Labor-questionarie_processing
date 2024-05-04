@@ -1,6 +1,4 @@
-install.packages('pacman')
-pacman::p_load_gh("Buedenbender/datscience")
-
+install.packages("tidySEM")
 #Импорт библиотек -----
 library(tidyverse)
 library(psych)
@@ -11,6 +9,7 @@ library(data.table)
 library(lavaanPlot)
 library(broom)
 library(flextable)
+library(tidySEM)
 
 #Подготовка ----
 
@@ -388,16 +387,25 @@ modificationindices(model3) %>% filter(mi > 10) %>% arrange(-mi)
 
 mdl3.1 <- ('F1 =~ a51+a_cosv13+a55+a_cosv18
           F2 =~ a8+a6+a7+a_cosv3
-          F3 =~ a39+a25+a55')
+           F3 =~ a39+a25+a55')
 
 model3.1 <- cfa(mdl3.1, data = anket)
 summary(model3.1)
 fitmeasures(model3.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 # В целом модель проходит по границе приемлимости
 
-#Строим график
+ #Строим график
 
-semPaths(model3.1, 'std')
+graph_sem(model3.1,
+          rect_width = 1.7,
+          rect_height = 0.3,
+          ellipses_width = 0.7,
+          ellipses_height = 0.7,
+          variance_diameter = 0.8,
+          spacing_x = 5,
+          spacing_y = 2,
+          text_size = 4,
+          curvature = 60)
 
 
 anket %>% select(a6:a_cosv18) %>% colnames() -> vars_left
