@@ -174,8 +174,24 @@ mdl1 <- ('F1 =~ a8+a1+a2+a4+a6+a7+a9+a10+a11+a13+a_cosv1+a_cosv2+a_cosv3+a_cosv4
 model1 <- cfa(mdl1, data = anket)
 summary(model1)
 
-
 write.csv(fitmeasures(model1, c("chisq","cfi", "tli", "srmr", "rmsea")), paste0(getwd(),'/2nd_survey/cfa1.quality.csv'))
+
+#Строим график
+
+semPaths(model1, "std", layout = "circle",
+         style = "ram", 
+         residuals = FALSE, 
+         intercepts = FALSE, 
+         nCharNodes = 5, 
+         edge.label.cex = 0.8, 
+         label.scale = FALSE, 
+         curvePivot = TRUE,
+         pastel = TRUE,
+         shapeMan = 'circle',
+         node.width = 0.7,    # Увеличение ширины узлов
+         node.height = 0.7,   # Увеличение высоты узлов
+         label.cex = 1.2,   # Масштабирование меток
+         mar = c(1, 1, 1, 1))  # Увеличение отступов
 
 #МОДЕЛЬ 2 -----
 
@@ -256,7 +272,24 @@ fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
 write.csv(fitmeasures(model2, c("chisq","cfi", "tli", "srmr", "rmsea")), paste0(getwd(),'/2nd_survey/cfa2.quality.csv'))
 
-semPaths(model2, 'std')
+#Строим график
+
+semPaths(model2, "std", layout = "circle",
+         style = "ram", 
+         residuals = FALSE, 
+         intercepts = FALSE, 
+         nCharNodes = 5, 
+         edge.label.cex = 0.8, 
+         label.scale = FALSE, 
+         curvePivot = TRUE,
+         pastel = TRUE,
+         shapeMan = 'circle',
+         node.width = 0.7,    # Увеличение ширины узлов
+         node.height = 0.7,   # Увеличение высоты узлов
+         label.cex = 1.2,   # Масштабирование меток
+         mar = c(1, 1, 1, 1))  # Увеличение отступов
+
+
 modificationindices(model2) %>% filter(mi > 20) %>% arrange(-mi)
 
 
@@ -396,16 +429,20 @@ fitmeasures(model3.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 
  #Строим график
 
-graph_sem(model3.1,
-          rect_width = 1.7,
-          rect_height = 0.3,
-          ellipses_width = 0.7,
-          ellipses_height = 0.7,
-          variance_diameter = 0.8,
-          spacing_x = 5,
-          spacing_y = 2,
-          text_size = 4,
-          curvature = 60)
+semPaths(model3.1, "std", layout = "circle",
+         style = "ram", 
+         residuals = FALSE, 
+         intercepts = FALSE, 
+         nCharNodes = 5, 
+         edge.label.cex = 0.8, 
+         label.scale = FALSE, 
+         curvePivot = TRUE,
+         pastel = TRUE,
+         shapeMan = 'circle',
+         node.width = 0.7,    # Увеличение ширины узлов
+         node.height = 0.7,   # Увеличение высоты узлов
+         label.cex = 1.2,   # Масштабирование меток
+         mar = c(1, 1, 1, 1))  # Увеличение отступов
 
 
 anket %>% select(a6:a_cosv18) %>% colnames() -> vars_left
