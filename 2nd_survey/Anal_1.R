@@ -1,4 +1,4 @@
-install.packages("tidySEM")
+#install.packages("tidySEM")
 #Импорт библиотек -----
 library(tidyverse)
 library(psych)
@@ -191,7 +191,11 @@ semPaths(model1, "std", layout = "circle",
          node.width = 0.7,    # Увеличение ширины узлов
          node.height = 0.7,   # Увеличение высоты узлов
          label.cex = 1.2,   # Масштабирование меток
-         mar = c(1, 1, 1, 1))  # Увеличение отступов
+         mar = c(1, 1, 1, 1),
+         filetype = "png",
+         filename = 'model1',
+         width = 11.7,
+         height = 8.3)# Увеличение отступов
 
 #МОДЕЛЬ 2 -----
 
@@ -287,8 +291,11 @@ semPaths(model2, "std", layout = "circle",
          node.width = 0.7,    # Увеличение ширины узлов
          node.height = 0.7,   # Увеличение высоты узлов
          label.cex = 1.2,   # Масштабирование меток
-         mar = c(1, 1, 1, 1))  # Увеличение отступов
-
+         mar = c(1, 1, 1, 1),
+         filetype = "png",
+         filename = 'model2',
+         width = 11.7,
+         height = 8.3)# Увеличение отступов
 
 modificationindices(model2) %>% filter(mi > 20) %>% arrange(-mi)
 
@@ -442,7 +449,11 @@ semPaths(model3.1, "std", layout = "circle",
          node.width = 0.7,    # Увеличение ширины узлов
          node.height = 0.7,   # Увеличение высоты узлов
          label.cex = 1.2,   # Масштабирование меток
-         mar = c(1, 1, 1, 1))  # Увеличение отступов
+         mar = c(1, 1, 1, 1),
+         filetype = "png",
+         filename = 'model3.1',
+         width = 11.7,
+         height = 8.3)# Увеличение отступов
 
 
 anket %>% select(a6:a_cosv18) %>% colnames() -> vars_left
