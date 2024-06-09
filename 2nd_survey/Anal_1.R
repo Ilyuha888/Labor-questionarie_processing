@@ -398,6 +398,7 @@ mdl3 <- ('F1 =~ a51+cv13+a55+cv18
           F2 =~ a8+a6+a7+cv3
           F3 =~ a39+a25')
 
+
 model3 <- cfa(mdl3, data = anket)
 summary(model3)
 
@@ -437,18 +438,25 @@ summary(model3.1)
 fitmeasures(model3.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 # В целом модель проходит по границе приемлимости
 
+gsub("F1", "Важность", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
+gsub("F2", "Польза", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
+gsub("F3", "Аффективная\nнасыщенность", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
+gsub("F1", "Важность", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
+gsub("F2", "Польза", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
+gsub("F3", "Аффективная\nнасыщенность", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
+
 #Строим график
 semPaths(model3.1, "std", layout = "circle",
          style = "ram", 
          residuals = FALSE, 
          intercepts = FALSE, 
-         nCharNodes = 5, 
+         nCharNodes = 100, 
          edge.label.cex = 0.8, 
-         label.scale = FALSE, 
+         label.scale = TRUE, 
          curvePivot = TRUE,
          pastel = TRUE,
          shapeMan = 'circle',
-         node.width = 0.9,    # Увеличение ширины узлов
+         node.width = 1.2,    # Увеличение ширины узлов
          node.height = 0.7,   # Увеличение высоты узлов
          label.cex = 1.2,   # Масштабирование меток
          mar = c(1, 1, 1, 1),
@@ -456,7 +464,6 @@ semPaths(model3.1, "std", layout = "circle",
          filename = 'model3.1',
          width = 11.7,
          height = 8.3) # Увеличение отступов
-
 
 anket %>% select(a6:cv18) %>% colnames() -> vars_left
 
