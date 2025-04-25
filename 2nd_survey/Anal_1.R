@@ -434,7 +434,7 @@ mdl3.1 <- ('F1 =~ a51+cv13+a55+cv18
            F3 =~ a39+a25+a55')
 
 model3.1 <- cfa(mdl3.1, data = anket)
-summary(model3.1)
+View(summary(model3.1))
 fitmeasures(model3.1, c("chisq","cfi", "tli", "srmr", "rmsea"))
 # В целом модель проходит по границе приемлимости
 
