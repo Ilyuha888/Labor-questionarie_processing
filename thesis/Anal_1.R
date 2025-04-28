@@ -1,4 +1,5 @@
 #install.packages("tidySEM")
+#install.packages("purrr")
 #Импорт библиотек -----
 library(tidyverse)
 library(psych)
@@ -10,6 +11,7 @@ library(lavaanPlot)
 library(broom)
 library(flextable)
 library(tidySEM)
+library(purrr)
 
 #Подготовка ----
 
@@ -34,8 +36,8 @@ anket %>%
 skewness <- datawizard::skewness(anket)
 kurtosis <- datawizard::kurtosis(anket)
 
-View(skewness)
-View(kurtosis)
+#View(skewness)
+#View(kurtosis)
 
 #Удалим те, где ассиметрия и эксцесс нигде по модулю не выходят за 2.
 
@@ -99,126 +101,73 @@ semPaths(
   # Масштабирование меток
   mar = c(1, 1, 1, 1),
   filetype = "png",
-  filename = 'thesis_model1',
+  filename = 'thesis/thesis_model1',
   width = 11.7,
   height = 8.3
 ) # Увеличение отступов
 
 #МОДЕЛЬ 2 -----
 
-# Так, оставим везде по 5-6 самых нагурженных вопросов
 
-anket %>% select(
-  c(
-    ID:a8,
-    a7,
-    a11,
-    cv3,
-    cv4,
-    a6,
-    a16,
-    a15,
-    a19,
-    a25,
-    cv7,
-    cv9,
-    a42,
-    a37,
-    a38,
-    a41,
-    a39,
-    cv13,
-    a51,
-    a43,
-    a52,
-    a55,
-    cv16,
-    cv18,
-    b1:s_sum_1
-  )
-) -> anket
+# Попробуем убрать эти элементы и посмотреть на показатели, тем более мы
+# заложили себе возможность убрать по 2 элемента на субшкалу
 
-#Бахаем напоследок всё то-же самое
-
-#Пересчитаем суммы
-
-anket %>%
-  mutate(
-    a_sum_1 = rowSums(across(c(
-      a8, a7, a11, cv3, cv4, a6
-    ))),
-    a_sum_2 = rowSums(across(c(
-      a16, a15, a19, a25, cv7, cv9
-    ))),
-    a_sum_3 = rowSums(across(c(
-      a42, a37, a38, a41, a39, cv13
-    ))),
-    a_sum_4 = rowSums(across(c(
-      a51, a43, a52, a55, cv16, cv18
-    )))
-  ) -> anket
 
 #Альфа Кронбаха
-
 anket %>%
-  select(a6:cv18) %>%
+  select(
+    c(
+      klim1:klim2,
+      klim4:klim6,
+      klim8:klim10,
+      klim12,
+      klim14:klim17,
+      klim19,
+      klim21:klim23,
+      klim25:klim26,
+      klim28
+    )
+  ) %>%
   alpha()
 
-#Ну, кайф. Альфа Кронбаха нормальная, даже хорошая.
-#Удаление ни одного пункта, её не увеличит. Тут не выкидываем
-
+#Ну, кайф. Альфа Кронбаха ещё выше - 0.92
 #Kaiser-Meyer-Olkin (KMO)
 anket %>%
-  select(a6:cv18) %>%
+  select(
+    c(
+      klim1:klim2,
+      klim4:klim6,
+      klim8:klim10,
+      klim12,
+      klim14:klim17,
+      klim19,
+      klim21:klim23,
+      klim25:klim26,
+      klim28
+    )
+  ) %>%
   KMO() %>%
   .[["MSAi"]] %>% sort()
 
-#Пойдёт, всё больше 0.8
-
-#ЭФА
-
-anket %>% select(a6:cv18) %>% colnames() -> vars_left
-
-#Определим количество факторов
-anket %>%
-  select(a6:cv18) %>%
-  fa.parallel(fa = "fa", fm = "ml")
-#Давайте попробуем 1 фактор
-
-anket %>%
-  select(a6:cv18) %>%
-  factanal(factors = 1) ->
-  anket.fa1
-
-print(anket.fa1$loadings, cutoff = 0.4)
-
-# Попробуем теоретическую модель
-
-anket %>%
-  select(a6:cv18) %>%
-  factanal(factors = 4, rotation = 'oblimin') ->
-  anket.fa4
-
-print(anket.fa4$loadings, cutoff = 0.4)
-
-#Ну грустно, нагрузки распределились не так, как нам надо, но как-то ближе
+#Пойдёт, всё больше 0.84
 
 #КФА
 
 mdl2 <- (
-  'F1 =~ a8+a7+a11+cv3+cv4+a6
-          F2 =~ a16+a15+a19+a25+cv7+cv9
-          F3 =~ a42+a37+a38+a41+a39+cv13
-          F4 =~ a51+a43+a52+a55+cv16+cv18'
+  'F1 =~ klim4+klim1+klim2+klim5+klim6
+          F2 =~ klim9+klim8+klim10+klim12+klim14
+          F3 =~ klim16+klim15+klim17+klim19+klim21
+          F4 =~ klim25+klim22+klim23+klim26+klim28'
 )
 
 model2 <- cfa(mdl2, data = anket)
-lavInspect(model2, "cov.lv")
 summary(model2)
 fitmeasures(model2, c("chisq", "cfi", "tli", "srmr", "rmsea"))
 
 write.csv(fitmeasures(model2, c("chisq", "cfi", "tli", "srmr", "rmsea")),
           paste0(getwd(), '/thesis/cfa2.quality.csv'))
+
+# В целом приемлемые показатели
 
 #Строим график
 
@@ -243,17 +192,199 @@ semPaths(
   # Масштабирование меток
   mar = c(1, 1, 1, 1),
   filetype = "png",
-  filename = 'model2',
+  filename = 'thesis/thesis_model2',
   width = 11.7,
   height = 8.3
 ) # Увеличение отступов
 
-modificationindices(model2) %>% filter(mi > 20) %>% arrange(-mi)
+modificationindices(model2) %>% filter(mi > 15) %>% arrange(-mi)
 
 
-View(model2)
-#Lavaan говорит, что беда модель не работает, матрица не считается(((
+# Lavaan предлагает учесть следующие взаимодействия:
+# Включить корелляцию klim19 ~~ klim21 - звучит оправдано
+# Включить корелляцию klim8 ~~ klim10 - звучит оправдано
+# Включить корелляцию klim16 ~~ klim15 - звучит оправдано
+# Включить корелляцию klim2 ~~ klim6 - звучит оправдано
+# Включить klim19 в F4 - не оправдано
 
+
+#Попробуем посмотреть с этими поправками
+
+mdl2_5 <- (
+  'F1 =~ klim4+klim1+klim2+klim5+klim6
+          F2 =~ klim9+klim8+klim10+klim12+klim14
+          F3 =~ klim16+klim15+klim17+klim19+klim21
+          F4 =~ klim25+klim22+klim23+klim26+klim28
+          klim19 ~~ klim21
+          klim8 ~~ klim10
+          klim16 ~~ klim15
+  klim2 ~~ klim6'
+)
+
+model2_5 <- cfa(mdl2_5, data = anket)
+summary(model2_5)
+fitmeasures(model2_5, c("chisq", "cfi", "tli", "srmr", "rmsea"))
+
+write.csv(fitmeasures(model2_5, c("chisq", "cfi", "tli", "srmr", "rmsea")),
+          paste0(getwd(), '/thesis/cfa2_5.quality.csv'))
+
+# В целом приемлемые показатели
+
+#Строим график
+
+# Получаем вектор всех имён узлов
+model_plot <- semPlot::semPlotModel(model2_5)
+
+labels_all <- model_plot@Vars$name
+
+# Создаём копию
+labels_new <- labels_all
+
+# Меняем только латентные переменные
+labels_new[labels_new == "F1"] <- "Связь с коллегами"
+labels_new[labels_new == "F2"] <- "Польза труда"
+labels_new[labels_new == "F3"] <- "Инструментальный\nаспект"
+labels_new[labels_new == "F4"] <- "Эмоциональное\nвлияние"
+
+#Строим график
+semPaths(
+  model2_5,
+  "std",
+  layout = "circle",
+  style = "ram",
+  residuals = FALSE,
+  intercepts = FALSE,
+  nCharNodes = 100,
+  edge.label.cex = 0.8,
+  label.scale = TRUE,
+  curvePivot = TRUE,
+  pastel = TRUE,
+  shapeMan = 'circle',
+  node.width = 1.2,
+  # Увеличение ширины узлов
+  node.height = 0.7,
+  # Увеличение высоты узлов
+  label.cex = 1.2,
+  # Масштабирование меток
+  mar = c(1, 1, 1, 1),
+  filetype = "png",
+  filename = 'thesis/thesis_model2_5',
+  width = 11.7,
+  height = 8.3,
+  nodeLabels = labels_new
+) # Увеличение отступов
+
+#Посмотрим на надёжность субшкал
+
+anket %>%
+  select(c(klim4, klim1, klim2, klim5, klim6)) %>%
+  alpha() # 0.8
+
+anket %>%
+  select(c(klim9, klim8, klim10, klim12, klim14)) %>%
+  alpha() # 0.91
+
+anket %>%
+  select(c(klim16, klim15, klim17, klim19, klim21)) %>%
+  alpha() # 0.68
+
+anket %>%
+  select(c(klim25, klim22, klim23, klim26, klim28)) %>%
+  alpha() # 0.77
+
+#Пересчитаем суммы
+#Посчитаем веса
+coefs <- data.frame(
+  lat_var = unlist(model2_5@ParTable$lhs)[1:20],
+  var = unlist(model2_5@ParTable$rhs)[1:20],
+  coef = unlist(model2_5@ParTable$est)[1:20]
+) %>% filter(var != "" & !is.na(var))
+
+#Домножим на веса
+
+# 1. Создаем именованный список коэффициентов
+coefs_list <- set_names(coefs$coef, coefs$var)
+
+# 2. Фильтруем только существующие переменные
+valid_vars <- intersect(names(coefs_list), names(anket))
+
+# 3. Создаем новые колонки с помощью map_dfc
+new_cols <- map_dfc(.x = valid_vars,
+                    .f = ~ anket[[.x]] * coefs_list[[.x]],
+                    .id = "variable") %>%
+  set_names(paste0("mdl2_5_", valid_vars))
+
+# 4. Объединяем с исходными данными
+anket <- bind_cols(anket, new_cols)
+colnames(anket)
+#Сами суммы
+anket %>%
+  mutate(
+    # Исправляем дублирование имени mdl4_5_sum_3
+    mdl2_5_sum = rowSums(
+      pick(
+        mdl2_5_klim4,
+        mdl2_5_klim1,
+        mdl2_5_klim2,
+        mdl2_5_klim5,
+        mdl2_5_klim6,
+        mdl2_5_klim9,
+        mdl2_5_klim8,
+        mdl2_5_klim10,
+        mdl2_5_klim12,
+        mdl2_5_klim14,
+        mdl2_5_klim16,
+        mdl2_5_klim15,
+        mdl2_5_klim17,
+        mdl2_5_klim19,
+        mdl2_5_klim21,
+        mdl2_5_klim25,
+        mdl2_5_klim22,
+        mdl2_5_klim23,
+        mdl2_5_klim26,
+        mdl2_5_klim28
+      )
+    ),
+    mdl2_5_sum_1 = rowSums(
+      pick(
+        mdl2_5_klim4,
+        mdl2_5_klim1,
+        mdl2_5_klim2,
+        mdl2_5_klim5,
+        mdl2_5_klim6
+      )
+    ),
+    mdl2_5_sum_2 = rowSums(
+      pick(
+        mdl2_5_klim9,
+        mdl2_5_klim8,
+        mdl2_5_klim10,
+        mdl2_5_klim12,
+        mdl2_5_klim14
+      )
+    ),
+    mdl2_5_sum_3 = rowSums(
+      pick(
+        mdl2_5_klim16,
+        mdl2_5_klim15,
+        mdl2_5_klim17,
+        mdl2_5_klim19,
+        mdl2_5_klim21
+      )
+    ),
+    mdl2_5_sum_4 = rowSums(
+      pick(
+        mdl2_5_klim25,
+        mdl2_5_klim22,
+        mdl2_5_klim23,
+        mdl2_5_klim26,
+        mdl2_5_klim28
+      )
+    )  # Правильное имя для новой суммы
+  ) -> anket
+anket %>%
+  select(last_col(offset = 29):last_col()) %>%
+  glimpse()  # или head(), или View()
 
 #МОДЕЛЬ 3 -----
 
@@ -261,10 +392,10 @@ View(model2)
 
 #Первое вращение, выбираем якоря
 anket %>%
-  select(a6:cv18) %>%
-  factanal(factors = 3,
+  select(klim1:klim28) %>%
+  factanal(factors = 4,
            rotation = 'geominQ',
-           delta = .5) ->
+           delta = .4) ->
   anket.esem.efa
 print(anket.esem.efa$loadings, cutoff = 0.4)
 
@@ -272,20 +403,23 @@ print(anket.esem.efa$loadings, cutoff = 0.4)
 esem_loadings <-
   data.table(matrix(
     round(anket.esem.efa$loadings, 2),
-    nrow = 24,
-    ncol = 3
+    nrow = 28,
+    ncol = 4
   ))
 
 #Меняем формат матрицы, готовя к анализу
-names(esem_loadings) <- c("F1", "F2", "F3")
-esem_loadings$item <- vars_left
+names(esem_loadings) <- c("F1", "F2", "F3", "F4")
+esem_loadings$item <- anket %>%
+  select(klim1:klim28) %>% colnames()
 esem_loadings <-
   melt(esem_loadings, "item", variable.name = "latent")
 
-esem_loadings
-
 #Устанавливаем якоря
-anchors <- c(F1 = "cv18", F2 = "a6", F3 = "a25")
+anchors <-
+  c(F1 = "klim4",
+    F2 = "klim9",
+    F3 = "klim16",
+    F4 = "klim25")
 
 #Задаём функцию для подсчёта ESEM модели
 make_esem_model <- function (loadings_dt, anchors) {
@@ -314,7 +448,7 @@ esem_model <- make_esem_model(esem_loadings, anchors)
 esem_model
 
 #Смотрим стандартные нагрузки, с фильтром больше или равно 0.7
-esem_fit <- cfa(esem_model, select(anket, a6:cv18), std.lv = T)
+esem_fit <- cfa(esem_model, select(anket, klim1:klim28), std.lv = T)
 summary(esem_fit, fit.measures = T, standardized = T) %>%
   .[["pe"]] %>%
   filter(std.lv >= 0.7)
@@ -327,85 +461,204 @@ lavaanPlot::lavaanPlot(
   edge_options = list(color = 'grey')
 )
 
-#Ну, подумкаем. Волбшебная машина говорит, что фактора 3:
-# 1) cv9, 42, 41, cv13, a51, a55, cv16, cv18
-# 2) 6, 7, 8, cv3, cv4, 43
-# 3) 25, 39
-# Обратимся теперь к магии теории, что это могут быть за факторы
-# 1) cv9, 42, 41, cv13, a51, a55, cv16, cv18 - с натяжкой что-то про страсть
-# 2) 6, 7, 8, cv3, cv4, 43 - про людей
-# 3) 25, 39 - что-то про настроение
+# Применение этого метода дало структуру слишком далую от нашего опросника +
+# сложно интерпретируемю теоретически
+# также часть вопросов попадала в несколько фаткоров
 
-# Но в целом... Пациент скорее мёртв
+# Поробуем версию с удалёнными обратными вопросами
 
-# А теперь возьмём то, что нам сказал E-SEM, и бахнем ещё одну CFA
-# Отсеим 2-4 вопроса для шкалы с самым большим вкладом
+#МОДЕЛЬ 4 -----
+
+#Попробуем ESEM
+
+#Первое вращение, выбираем якоря
+anket %>%
+  select(
+    c(
+      klim1:klim2,
+      klim4:klim6,
+      klim8:klim10,
+      klim12,
+      klim14:klim17,
+      klim19,
+      klim21:klim23,
+      klim25:klim26,
+      klim28
+    )
+  ) %>%
+  factanal(factors = 4,
+           rotation = 'geominQ',
+           delta = .4) ->
+  anket.esem.efa
+print(anket.esem.efa$loadings, cutoff = 0.4)
+
+#Cтроим матрицу со всеми нагрузками
+esem_loadings <-
+  data.table(matrix(
+    round(anket.esem.efa$loadings, 2),
+    nrow = 20,
+    ncol = 4
+  ))
+
+#Меняем формат матрицы, готовя к анализу
+names(esem_loadings) <- c("F1", "F2", "F3", "F4")
+esem_loadings$item <- anket %>%
+  select(
+    c(
+      klim1:klim2,
+      klim4:klim6,
+      klim8:klim10,
+      klim12,
+      klim14:klim17,
+      klim19,
+      klim21:klim23,
+      klim25:klim26,
+      klim28
+    )
+  ) %>% colnames()
+esem_loadings <-
+  melt(esem_loadings, "item", variable.name = "latent")
+
+#Устанавливаем якоря
+anchors <-
+  c(F1 = "klim10",
+    F2 = "klim2",
+    F3 = "klim25",
+    F4 = "klim19")
+
+#Задаём функцию для подсчёта ESEM модели
+make_esem_model <- function (loadings_dt, anchors) {
+  #Добавляем is_anchor (является ли якорем)
+  loadings_dt[, is_anchor := 0]
+  for (l in names(anchors))
+    loadings_dt[latent != l & item == anchors[l],
+                is_anchor := 1]
+  
+  #Добавляем лавановский синтакс для каждой переменной (зависит от is_anchor)
+  loadings_dt[is_anchor == 0, syntax := paste0("start(", value, ")*", item)]
+  loadings_dt[is_anchor == 1, syntax := paste0(value, "*", item)]
+  
+  #Добавляем лавановский синтакс для латентных переменных
+  each_syntax <- function (l) {
+    paste(l, "=~", paste0(loadings_dt[latent == l, syntax], collapse = "+"), "\n")
+  }
+  
+  #Генерируем финальный лавановский синтакс
+  paste(sapply(unique(loadings_dt$latent), each_syntax), collapse = " ")
+}
+
+#Делаем ESEM с нашими параметрами
+esem_model <- make_esem_model(esem_loadings, anchors)
+
+esem_model
+
+#Смотрим стандартные нагрузки, с фильтром больше или равно 0.7
+esem_fit <- cfa(esem_model, select(anket, klim1:klim28), std.lv = T)
+summary(esem_fit, fit.measures = T, standardized = T) %>%
+  .[["pe"]] %>%
+  filter(std.lv >= 0.7)
+
+#Строим график
+lavaanPlot::lavaanPlot(
+  model = esem_fit,
+  coefs = TRUE,
+  stand = TRUE,
+  edge_options = list(color = 'grey')
+)
+
+
+# Применение этого метода дало структуру похожую на наш опросник
+# однако часть вопросов 3 и 4 факторов перемешались
+# При этом нет вопросов попавших в один фактор
+
+anket %>%
+  select(
+    c(
+      klim1,
+      klim2,
+      klim4,
+      klim5,
+      klim6,
+      klim8,
+      klim9,
+      klim10,
+      klim12,
+      klim14,
+      klim15,
+      klim16,
+      klim22,
+      klim23,
+      klim28,
+      klim19,
+      klim21
+    )
+  ) %>%
+  alpha() # 0.9
 
 #CFA - once again
 
-mdl3 <- ('F1 =~ cv13+a51+a55+cv18
-          F2 =~ a6+a7+a8+cv3
-          F3 =~ a25+a39')
+mdl4 <- (
+  'F1 =~ klim1+klim2+klim4+klim5+klim6
+          F2 =~ klim8+klim9+klim10+klim12+klim14
+          F3 =~ klim15+klim16+klim22+klim23+klim28
+          F4 =~ klim19+klim21'
+)
 
-model3 <- cfa(mdl3, data = anket)
-summary(model3)
-anket %>%
-  select(c(ID:a6, cv13, a51, a55,
-           cv18, a7, a8, cv3, a25, a39, b1:s_sum_1)) -> anket
-mdl3 <- ('F1 =~ a51+cv13+a55+cv18
-          F2 =~ a8+a6+a7+cv3
-          F3 =~ a39+a25')
+model4 <- cfa(mdl4, data = anket)
+summary(model4)
 
 
-model3 <- cfa(mdl3, data = anket)
-summary(model3)
+model4 <- cfa(mdl4, data = anket)
+summary(model4)
 
-
-fitmeasures(model3, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-#Ну, выберем из двух моделек одну
-
-fitmeasures(model2, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-fitmeasures(model3, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-# Окей, определённо модель с тремя латентными факторами, окей
-# Даже почти дотягивается до уровня приемлимости
-# Давайте её пофайнтюним и всё
-
-
-# Посмотрим, что Lavaan для модификации предложит
-
-semPaths(model3, 'std')
-modificationindices(model3) %>% filter(mi > 10) %>% arrange(-mi)
+fitmeasures(model4, c("chisq", "cfi", "tli", "srmr", "rmsea"))
+modificationindices(model4) %>% filter(mi > 15) %>% arrange(-mi)
 
 # Lavaan предлагает учесть следующие взаимодействия:
-# Включить a39 и a25 в F1, F2
-# Включить cv3 в F1 и а55 в F3
+# Включить корелляцию klim8 ~~ klim10 - звучит оправдано
+# Включить корелляцию klim5 ~~  klim6 - звучит оправдано
+# Включить корелляцию klim2 ~~  klim6 - звучит оправдано
 
-# Я считаю оправданным включить a55 в F3
-# Включение других пунктов в другие факторы считаю не оправданным
+mdl4_5 <- (
+  'F1 =~ klim4+klim1+klim2+klim5+klim6
+          F2 =~ klim9+klim8+klim10+klim12+klim14
+          F3 =~ klim15+klim16+klim22+klim23+klim28
+          F4 =~ klim21+klim19
+        klim8 ~~ klim10
+         klim5 ~~  klim6
+         klim2 ~~  klim6'
+)
 
-#Посмотрим после учёта
 
-mdl3.1 <- ('F1 =~ a51+cv13+a55+cv18
-          F2 =~ a8+a6+a7+cv3
-           F3 =~ a39+a25+a55')
+model4_5 <- cfa(mdl4_5, data = anket)
+summary(model4_5)
 
-model3.1 <- cfa(mdl3.1, data = anket)
-View(summary(model3.1))
-fitmeasures(model3.1, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-# В целом модель проходит по границе приемлимости
+fitmeasures(model4_5, c("chisq", "cfi", "tli", "srmr", "rmsea"))
 
-gsub("F1", "Важность", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
-gsub("F2", "Польза", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
-gsub("F3", "Аффективная\nнасыщенность", model3.1@ParTable$lhs) -> model3.1@ParTable[['lhs']]
-gsub("F1", "Важность", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
-gsub("F2", "Польза", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
-gsub("F3", "Аффективная\nнасыщенность", model3.1@ParTable$rhs) -> model3.1@ParTable[['rhs']]
+write.csv(fitmeasures(model4_5, c("chisq", "cfi", "tli", "srmr", "rmsea")),
+          paste0(getwd(), '/thesis/cfa4_5.quality.csv'))
+
+# В целом приемлемые показатели
+
+#Строим график
+
+# Получаем вектор всех имён узлов
+model_plot <- semPlot::semPlotModel(model4_5)
+
+labels_all <- model_plot@Vars$name
+
+# Создаём копию
+labels_new <- labels_all
+
+# Меняем только латентные переменные
+labels_new[labels_new == "F1"] <- "Связь с коллегами"
+labels_new[labels_new == "F2"] <- "Польза труда"
+labels_new[labels_new == "F3"] <- "Страсть"
+labels_new[labels_new == "F4"] <- "Инструментальный\nаспект"
 
 #Строим график
 semPaths(
-  model3.1,
+  model4_5,
   "std",
   layout = "circle",
   style = "ram",
@@ -425,161 +678,126 @@ semPaths(
   # Масштабирование меток
   mar = c(1, 1, 1, 1),
   filetype = "png",
-  filename = 'model3.1',
+  filename = 'thesis/thesis_model4_5',
   width = 11.7,
-  height = 8.3
+  height = 8.3,
+  nodeLabels = labels_new
 ) # Увеличение отступов
 
-anket %>% select(a6:cv18) %>% colnames() -> vars_left
+#Посмотрим на надёжность субшкал
+
+anket %>%
+  select(c(klim1, klim2, klim4, klim5, klim6)) %>%
+  alpha() # 0.8
+
+anket %>%
+  select(c(klim8, klim9, klim10, klim12, klim14)) %>%
+  alpha() # 0.91
+
+anket %>%
+  select(c(klim19, klim21)) %>%
+  alpha() # 0.61
+
+anket %>%
+  select(c(klim15, klim16, klim22, klim23, klim28)) %>%
+  alpha() # 0.73
+
+#Ну, выберем из двух моделек одну
+
+fitmeasures(model2_5, c("chisq", "cfi", "tli", "srmr", "rmsea"))
+fitmeasures(model4_5, c("chisq", "cfi", "tli", "srmr", "rmsea"))
+
+#Обе модели показывают удовлетворительные показатели, хотя вторая имеет лучшие
+#Смысловая структура у них похожа, но первая легче интерпретируется
+
+# Надёжность первых двух субшкал в обеих моделях отличная и хорошая
+# Надёжность двух других субшкал умеренные и хорошие
+
+# Однозначно определить лидера не получается
+# Проведём оценку внешней валидности для обеих моделей и таким образом выберем лучшую
 
 #Пересчитаем суммы
 #Посчитаем веса
-as_tibble_col(unlist(model3.1@ParTable[2], use.names = FALSE)[1:15],
-              column_name = 'lat_var') %>%
-  mutate(
-    var = unlist(model3.1@ParTable[4], use.names = FALSE)[1:15],
-    coef = unlist(model3.1@ParTable[13], use.names = FALSE)[1:15]
-  ) -> coefs
+coefs <- data.frame(
+  lat_var = unlist(model4_5@ParTable$lhs)[1:17],
+  var = unlist(model4_5@ParTable$rhs)[1:17],
+  coef = unlist(model4_5@ParTable$est)[1:17]
+) %>% filter(var != "" & !is.na(var))
 
-coefs %>% arrange(lat_var, var) %>% select(coef) -> coefss
 #Домножим на веса
-i = 1
-for (x in c(14:28)) {
-  anket[x] = anket[x] * coefss$coef[i]
-  i = i + 1
-}
+
+# 1. Создаем именованный список коэффициентов
+coefs_list <- set_names(coefs$coef, coefs$var)
+
+# 2. Фильтруем только существующие переменные
+valid_vars <- intersect(names(coefs_list), names(anket))
+
+# 3. Создаем новые колонки с помощью map_dfc
+new_cols <- map_dfc(.x = valid_vars,
+                    .f = ~ anket[[.x]] * coefs_list[[.x]],
+                    .id = "variable") %>%
+  set_names(paste0("mdl4_5_", valid_vars))
+
+# 4. Объединяем с исходными данными
+anket <- bind_cols(anket, new_cols)
+colnames(anket)
 #Сами суммы
 anket %>%
   mutate(
-    a_sum_1 = rowSums(across(c(a51, cv13, a55, cv18))),
-    a_sum_2 = rowSums(across(c(a8, a6, a7, cv3))),
-    a_sum_3 = rowSums(across(c(a39, a25, a55)))
+    # Исправляем дублирование имени mdl4_5_sum_3
+    mdl4_5_sum = rowSums(
+      pick(
+        mdl4_5_klim4,
+        mdl4_5_klim1,
+        mdl4_5_klim2,
+        mdl4_5_klim5,
+        mdl4_5_klim6,
+        mdl4_5_klim9,
+        mdl4_5_klim8,
+        mdl4_5_klim10,
+        mdl4_5_klim12,
+        mdl4_5_klim14,
+        mdl4_5_klim15,
+        mdl4_5_klim16,
+        mdl4_5_klim22,
+        mdl4_5_klim23,
+        mdl4_5_klim28,
+        mdl4_5_klim21, 
+        mdl4_5_klim19
+      )
+    ),
+    mdl4_5_sum_1 = rowSums(
+      pick(
+        mdl4_5_klim4,
+        mdl4_5_klim1,
+        mdl4_5_klim2,
+        mdl4_5_klim5,
+        mdl4_5_klim6
+      )
+    ),
+    mdl4_5_sum_2 = rowSums(
+      pick(
+        mdl4_5_klim9,
+        mdl4_5_klim8,
+        mdl4_5_klim10,
+        mdl4_5_klim12,
+        mdl4_5_klim14
+      )
+    ),
+    mdl4_5_sum_4 = rowSums(
+      pick(
+        mdl4_5_klim15,
+        mdl4_5_klim16,
+        mdl4_5_klim22,
+        mdl4_5_klim23,
+        mdl4_5_klim28
+      )
+    ),
+    mdl4_5_sum_3 = rowSums(pick(mdl4_5_klim21, mdl4_5_klim19))  # Правильное имя для новой суммы
   ) -> anket
 
-anket %>% select(-a_sum_4) -> anket
 
 #Сохраним результаты для дальнешей работы: ----
 
-anket %>% select(ID:d12, a_sum_1:s_sum_1) %>%
+anket %>%
   write_csv(paste0(getwd(), '/thesis/anket_an_1.csv'))
-
-# Теоретическая интерпретация
-
-# F1 (a51,cv13,a55,cv18) - смысл работы, значимость
-# F2 (a8,a6,a7,cv3) - про людей
-# F3 (a39,a25,a55) - про настроение
-
-#Проверим методику "Сокращенная версия опросника проактивный копиг" -----
-#Альфа Кронбаха
-
-anket %>%
-  select(b1:b27) %>%
-  alpha()
-
-#Kaiser-Meyer-Olkin (KMO)
-anket %>%
-  select(b1:b27) %>%
-  KMO() %>%
-  .[["MSAi"]] %>% sort()
-
-#КФА
-mdl1 <- (
-  'F1 =~ b1+b2+b3+b4+b5+b6
-          F2 =~ b7+b8+b9+b10+b11
-          F3 =~ b12+b13+b14
-          F4 =~ b15+b16+b17+b18+b19
-          F5 =~ b20+b21+b22+b23
-          F6 =~ b24+b25+b26+b27'
-)
-
-model1 <- cfa(mdl1, data = anket)
-summary(model1)
-fitmeasures(model1, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-#Проверим методику "Удовлетворенность трудом" -----
-#Альфа Кронбаха
-
-anket %>%
-  select(c1:c19) %>%
-  alpha()
-
-#Kaiser-Meyer-Olkin (KMO)
-anket %>%
-  select(c1:c19) %>%
-  KMO() %>%
-  .[["MSAi"]] %>% sort()
-
-#КФА
-mdl1 <- (
-  'F1 =~ c1+c2+c3+c4
-          F2 =~ c5+c6+c7+c8
-          F3 =~ c9+c10+c11
-          F4 =~ c12+c13+c14
-          F5 =~ c15+c16+c17+c18+c19'
-)
-
-model1 <- cfa(mdl1, data = anket)
-summary(model1)
-fitmeasures(model1, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-#Проверим методику "Шкала проффесиональной апатии" -----
-#Альфа Кронбаха
-
-anket %>%
-  select(u1:u10) %>%
-  alpha()
-
-#Kaiser-Meyer-Olkin (KMO)
-anket %>%
-  select(u1:u10) %>%
-  KMO() %>%
-  .[["MSAi"]] %>% sort()
-
-#КФА
-mdl1 <- ('F1 =~ u1+u2+u3+u4+u5
-          F2 =~ u6+u7+u8+u9+u10')
-
-model1 <- cfa(mdl1, data = anket)
-summary(model1)
-fitmeasures(model1, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-#Проверим методику "Шкалы толерантности и интолерантности к неопределенности в модификации опросника" -----
-#Альфа Кронбаха
-
-anket %>%
-  select(t1:t13) %>%
-  alpha()
-
-#Kaiser-Meyer-Olkin (KMO)
-anket %>%
-  select(t1:t13) %>%
-  KMO() %>%
-  .[["MSAi"]] %>% sort()
-
-#КФА
-mdl1 <- ('F1 =~ t1+t2+t3+t4+t5+t6+t7
-          F2 =~ t8+t9+t10+t11+t12+t13')
-
-model1 <- cfa(mdl1, data = anket)
-summary(model1)
-fitmeasures(model1, c("chisq", "cfi", "tli", "srmr", "rmsea"))
-
-#Проверим методику "Удовлетворенность жизнью" -----
-#Альфа Кронбаха
-
-anket %>%
-  select(s1:s5) %>%
-  alpha()
-
-#Kaiser-Meyer-Olkin (KMO)
-anket %>%
-  select(s1:s5) %>%
-  KMO() %>%
-  .[["MSAi"]] %>% sort()
-
-#КФА
-mdl1 <- ('F1 =~ s1+s2+s3+s4+s5')
-
-model1 <- cfa(mdl1, data = anket)
-summary(model1)
-fitmeasures(model1, c("chisq", "cfi", "tli", "srmr", "rmsea"))

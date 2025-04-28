@@ -187,6 +187,7 @@ anket %>%
     job_sat_sum_3 = rowSums(across(c(job_sat9:job_sat11))),
     job_sat_sum_4 = rowSums(across(c(job_sat12:job_sat14))),
     job_sat_sum_5 = rowSums(across(c(job_sat15:job_sat19))),
+    job_sat_sum = rowSums(across(c(job_sat1:job_sat19))),
     tol_intol_sum_1 = rowSums(across(c(tol_intol1:tol_intol7))),
     tol_intol_sum_2 = rowSums(across(c(tol_intol8:tol_intol13))),
     life_sat_sum_1 = rowSums(across(c(life_sat1:life_sat5))),
