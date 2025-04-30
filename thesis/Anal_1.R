@@ -31,6 +31,52 @@ anket %>%
     max = max(dem2)
   )
 
+#Распределение по образованию
+anket %>%
+  group_by(dem4) %>%
+  summarise(
+    n = n()
+  )
+
+#Распределение по населённому пункту
+anket %>%
+  group_by(dem3) %>%
+  summarise(
+    n = n()
+  )
+
+#Распределение по сфере компании
+anket <- anket %>%
+  mutate(
+    dem7_recoded = case_when(
+      dem7 %in% c("Обслуживание;", "Продажи, закупки;", "Образование;", "Торговля;", 
+                  "Логистика;", "Транспорт;", "Общественное питание;", "Гостиничный бизнес;", 
+                  "Красота и здоровье;", "Маркетинг, реклама, PR;", "Финансы, бухгалтерия, банки;", 
+                  "Медицина;", "Производство;", "Юриспруденция;") ~ dem7,
+      TRUE ~ "Другое"
+    ),
+    # Устанавливаем порядок уровней фактора
+    dem7_recoded = factor(
+      dem7_recoded,
+      levels = c(
+        "Обслуживание;", "Продажи, закупки;", "Образование;", "Торговля;", 
+        "Логистика;", "Транспорт;", "Общественное питание;", "Гостиничный бизнес;", 
+        "Красота и здоровье;", "Маркетинг, реклама, PR;", "Финансы, бухгалтерия, банки;", 
+        "Медицина;", "Производство;", "Юриспруденция;", "Другое"
+      )
+    )
+  )
+
+anket %>%
+  # Группируем и считаем частоты
+  count(dem7_recoded, name = "n") %>%
+  # Добавляем проценты (доля от общего числа ответов)
+  mutate(
+    percent = round(n / sum(n) * 100, 2)  # Округляем до 2 знаков
+  ) %>%
+  # Упорядочиваем по заданному порядку уровней
+  arrange(dem7_recoded)
+
 #Посмотрим нормальность
 
 skewness <- datawizard::skewness(anket)
@@ -162,6 +208,7 @@ mdl2 <- (
 
 model2 <- cfa(mdl2, data = anket)
 summary(model2)
+
 fitmeasures(model2, c("chisq", "cfi", "tli", "srmr", "rmsea"))
 
 write.csv(fitmeasures(model2, c("chisq", "cfi", "tli", "srmr", "rmsea")),
@@ -595,6 +642,33 @@ anket %>%
   ) %>%
   alpha() # 0.9
 
+#Ну, кайф. Альфа Кронбаха ещё выше - 0.92
+#Kaiser-Meyer-Olkin (KMO)
+anket %>%
+  select(
+    c(
+      klim1,
+      klim2,
+      klim4,
+      klim5,
+      klim6,
+      klim8,
+      klim9,
+      klim10,
+      klim12,
+      klim14,
+      klim15,
+      klim16,
+      klim22,
+      klim23,
+      klim28,
+      klim19,
+      klim21
+    )
+  ) %>%
+  KMO() %>%
+  .[["MSAi"]] %>% sort()
+
 #CFA - once again
 
 mdl4 <- (
@@ -607,11 +681,36 @@ mdl4 <- (
 model4 <- cfa(mdl4, data = anket)
 summary(model4)
 
-
-model4 <- cfa(mdl4, data = anket)
-summary(model4)
-
 fitmeasures(model4, c("chisq", "cfi", "tli", "srmr", "rmsea"))
+
+#Строим график
+semPaths(
+  model4,
+  "std",
+  layout = "circle",
+  style = "ram",
+  residuals = FALSE,
+  intercepts = FALSE,
+  nCharNodes = 100,
+  edge.label.cex = 0.8,
+  label.scale = TRUE,
+  curvePivot = TRUE,
+  pastel = TRUE,
+  shapeMan = 'circle',
+  node.width = 1.2,
+  # Увеличение ширины узлов
+  node.height = 0.7,
+  # Увеличение высоты узлов
+  label.cex = 1.2,
+  # Масштабирование меток
+  mar = c(1, 1, 1, 1),
+  filetype = "png",
+  filename = 'thesis/thesis_model4',
+  width = 11.7,
+  height = 8.3,
+  nodeLabels = labels_new
+) # Увеличение отступов
+
 modificationindices(model4) %>% filter(mi > 15) %>% arrange(-mi)
 
 # Lavaan предлагает учесть следующие взаимодействия:
